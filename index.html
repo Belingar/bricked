@@ -1,16 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link  rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <meta charset="UTF-8">
-    <title>bricked</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>TANKS BRICKS</title>
 </head>
 
 <body>
-    <canvas id="canvas" width="800" height="600"></canvas>
-<p>Točke: <mark id="tocke">0</mark></p>
-<p>Čas: <mark id="cas">00:00</mark></p>
+    <div class="main-container">
+        <h1 class="game-title">BATTLE FIELD BRICKS</h1>
+        <div id="difficulty-menu">
+        <button onclick="startGame('easy')">EASY</button>
+        <button onclick="startGame('medium')">MEDIUM</button>
+        <button onclick="startGame('hard')">HARD</button>
+    </div>
+        <div class="game-content" id="game-interface" style="display:none;">
+            <div class="side-panel scoreboard">
+                <h2>BATTLE STATUS</h2>
+                <h3>SCORE</h3>
+                <p>POINTS: <span id="tocke">0</span></p>
+                <hr>
+                <h3>TANKS DESTROYED</h3>
+                <p>TANKS LEFT: <span id="tanks-left">0</span></p>
+                <hr>
+                <h3>TIMER</h3>
+                <p>TIME: <span id="cas">00:00</span></p>
+                <hr>
+                <h3>DIFFICULTY</h3>
+                <p>MODE: <span id="current-difficulty">-</span></p>
+                <hr>
+            </div>
 
+            <div class="canvas-area">
+                <canvas id="canvas" width="800" height="600"></canvas>
+            </div>
+
+            <div class="side-panel instructions">
+                <h2>FIELD MANUAL</h2>
+                <h3>MISSION</h3>
+                <p>Command your tank and fire shells at enemy armored units. Destroy all tanks to win the battle.</p>
+                <hr>
+                <ul>
+                    <li><strong>LEFT:</strong> Arrow Left</li>
+                    <li><strong>RIGHT:</strong> Arrow Right</li>
+                </ul>
+                <hr>
+                <h3>ENEMY ARMOR</h3>
+                <ul>
+                    <li>Full HP (2 hits)</li>
+                    <li>Damaged (1 hits)</li>
+                    <li>Destroyed</li>
+                </ul>
+                <h3>SCORE SYSTEM</h3>
+                <ul>
+                    <li>Each tank destroyed: +1</li>
+                    <li>All tanks cleared: Bonus</li>
+                    <li>Faster clear = higher rank</li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <script src="js/game.js"></script>
     <script src="js/jquery-4.0.0.js"></script>
 </body>

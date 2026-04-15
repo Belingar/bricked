@@ -1,60 +1,93 @@
 // --- Global variables ---
 var canvas;
 var ctx;
-var x = 150;
-var y = 150;
-var dx = 2;
-var dy = 4;
-var r = 10; 
+
+// Ball variables
+var x;
+var y;
+var r = 10;
 var WIDTH = 800;
 var HEIGHT = 600;
 
+var difficultySettings = {
+    easy: { dx: 2, dy: 4, paddlew: 100, rows: 3, cols: 5, ballColor: "#ffff00" },   // Yellow
+    medium: { dx: 4, dy: 6, paddlew: 75, rows: 5, cols: 5, ballColor: "#ffff00" }, // Yellow
+    hard: { dx: 4, dy: 6, paddlew: 50, rows: 6, cols: 8, ballColor: "#808080" }    // Gray
+};
+var currentBallColor;
+// Image Loading
+var tankImgA = new Image();
+tankImgA.src = 'img/green.png';
+var tankImgB = new Image();
+tankImgB.src = 'img/reed.png';
+var background = new Image();
+background.src = "img/back.jpg";
+var paddleImg = new Image();
+paddleImg.src = 'img/paddle.png';
+
 // Paddle and input
-var paddlex;
+var paddlex; 
 var paddleh = 10;
-var paddlew = 75;
 var rightDown = false;
 var leftDown = false;
 var intervalId;
+var dx, dy, paddlew, NROWS, NCOLS;
 
 // Bricks
 var bricks;
-var NROWS = 5;
-var NCOLS = 5;
 var BRICKWIDTH;
-var BRICKHEIGHT = 15;
+var BRICKHEIGHT = 32;
 var PADDING = 1;
 
-// Colors
-var rowcolors = ["#FF1C0A", "#FFFD0A", "#00A308", "#0008DB", "#EB0093"];
 var paddlecolor = "#000000";
-var ballcolor = "#333333";
 
-// Game State (Timer and Score)
 var tocke = 0;
 var sekunde = 0;
 var start = true;
 var timerId;
 
-// --- Initialization ---
+function startGame(mode) {
+    // Hide menu and show game
+    document.getElementById('difficulty-menu').style.display = 'none';
+    document.getElementById('game-interface').style.display = 'flex';
+    document.getElementById('current-difficulty').innerHTML = mode.toUpperCase();
+    // Apply settings
+    var settings = difficultySettings[mode];
+    dx = settings.dx;
+    dy = settings.dy;
+    paddlew = settings.paddlew;
+    NROWS = settings.rows;
+    NCOLS = settings.cols;
+    currentBallColor = settings.ballColor;
+    // Clear any existing intervals if the user restarts
+    clearInterval(intervalId);
+    clearInterval(timerId);
+
+    init();
+}
+
 function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
-    
-    paddlex = WIDTH / 2;
+
+    // Reset ball and paddle to the center
+    x = WIDTH / 2;
+    y = HEIGHT / 2;
+    paddlex = (WIDTH / 2) - (paddlew / 2);
+
+    start = true;
     initbricks();
-    
-    // Reset score and UI
+    updateTanksRemaining();
+
+    // Reset scores and timer
     tocke = 0;
     sekunde = 0;
     document.getElementById("tocke").innerHTML = tocke;
     document.getElementById("cas").innerHTML = "00:00";
 
-    // Start loops
     intervalId = setInterval(draw, 10);
-    timerId = setInterval(updateTimer, 1000); // Run timer every 1 second
-    
-    // Controls
+    timerId = setInterval(updateTimer, 1000);
+
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
 }
@@ -65,41 +98,32 @@ function initbricks() {
     for (var i = 0; i < NROWS; i++) {
         bricks[i] = new Array(NCOLS);
         for (var j = 0; j < NCOLS; j++) {
-            bricks[i][j] = 1;
+            bricks[i][j] = 2; // Keep the 2-hit system
         }
     }
 }
 
-// --- Controls ---
-function onKeyDown(evt) {
-    if (evt.keyCode == 39) rightDown = true;
-    else if (evt.keyCode == 37) leftDown = true;
-}
-
-function onKeyUp(evt) {
-    if (evt.keyCode == 39) rightDown = false;
-    else if (evt.keyCode == 37) leftDown = false;
-}
-
-// --- Timer Logic ---
-function updateTimer() {
-    if (start == true) {
-        sekunde++;
-        var sekundeI = sekunde % 60;
-        var minuteI = Math.floor(sekunde / 60);
-        
-        sekundeI = (sekundeI > 9) ? sekundeI : "0" + sekundeI;
-        minuteI = (minuteI > 9) ? minuteI : "0" + minuteI;
-        
-        document.getElementById("cas").innerHTML = minuteI + ":" + sekundeI;
+function updateTanksRemaining() {
+    var count = 0;
+    for (var i = 0; i < NROWS; i++) {
+        for (var j = 0; j < NCOLS; j++) {
+            if (bricks[i][j] > 0) {
+                count++;
+            }
+        }
     }
+    // Safety check in case the HTML element hasn't loaded
+    var tanksLeftElement = document.getElementById("tanks-left");
+    if (tanksLeftElement) {
+        tanksLeftElement.innerHTML = count;
+    }
+    return count;
 }
 
-// --- Main Loop ---
 function draw() {
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    ctx.drawImage(background, 0, 0, WIDTH, HEIGHT);
 
-    // 1. Paddle movement with bounds checking
+    // 1. Paddle movement
     if (rightDown) {
         if ((paddlex + paddlew) < WIDTH) paddlex += 5;
         else paddlex = WIDTH - paddlew;
@@ -109,60 +133,63 @@ function draw() {
     }
 
     // 2. Draw ball
-    ctx.fillStyle = ballcolor; 
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2, true);
+    ctx.beginPath(); // Start a new shape
+    ctx.fillStyle = currentBallColor; // Set the color based on difficulty
+    ctx.arc(x, y, r, 0, Math.PI * 2, true); // Define the circle shape
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = currentBallColor;
     ctx.fill();
+    ctx.shadowBlur = 0;
 
     // 3. Draw paddle
-    ctx.fillStyle = paddlecolor;
-    ctx.fillRect(paddlex, HEIGHT - paddleh, paddlew, paddleh);
+    ctx.drawImage(paddleImg, paddlex, HEIGHT - paddleh, paddlew, paddleh);
 
-    // 4. Draw bricks
+    // 4. Draw bricks (Two-Image Logic)
     for (var i = 0; i < NROWS; i++) {
-        ctx.fillStyle = rowcolors[i];
         for (var j = 0; j < NCOLS; j++) {
-            if (bricks[i][j] == 1) {
-                ctx.fillRect(
-                    (j * (BRICKWIDTH + PADDING)) + PADDING,
-                    (i * (BRICKHEIGHT + PADDING)) + PADDING,
-                    BRICKWIDTH, BRICKHEIGHT
-                );
+            if (bricks[i][j] > 0) {
+                var brickX = (j * (BRICKWIDTH + PADDING)) + PADDING;
+                var brickY = (i * (BRICKHEIGHT + PADDING)) + PADDING;
+
+                if (bricks[i][j] === 2) {
+                    ctx.drawImage(tankImgA, brickX, brickY, BRICKWIDTH, BRICKHEIGHT);
+                } else if (bricks[i][j] === 1) {
+                    ctx.drawImage(tankImgB, brickX, brickY, BRICKWIDTH, BRICKHEIGHT);
+                }
             }
         }
     }
 
-    // 5. Brick Collision Logic
+    // 5. Updated Collision Logic (Added safety bounds to prevent crashes)
     var rowheight = BRICKHEIGHT + PADDING;
     var colwidth = BRICKWIDTH + PADDING;
     var row = Math.floor(y / rowheight);
     var col = Math.floor(x / colwidth);
 
-    if (y < NROWS * rowheight && row >= 0 && col >= 0 && bricks[row][col] == 1) {
-        dy = -dy; 
-        bricks[row][col] = 0; // Break brick
-        tocke += 1; // Add score
+    // Check if we hit a brick that has health (> 0) and we are within the array boundaries
+    if (y < NROWS * rowheight && row >= 0 && col >= 0 && row < NROWS && col < NCOLS && bricks[row][col] > 0) {
+        dy = -dy;
+
+        // Point on every hit!
+        tocke += 1;
         document.getElementById("tocke").innerHTML = tocke;
+
+        bricks[row][col] -= 1; // Decrease health
+        updateTanksRemaining(); // Update the counter
     }
 
-    // 6. Wall & Paddle Collision Logic
-    if (x + dx > WIDTH - r || x + dx < r) {
-        dx = -dx;
-    }
-    
-    if (y + dy < r) {
-        dy = -dy;
-    } else if (y + dy > HEIGHT - r) {
-        start = false; // Pause timer
-        
+    // 6. Wall & Paddle Collision
+    if (x + dx > WIDTH - r || x + dx < r) dx = -dx;
+    if (y + dy < r) dy = -dy;
+    else if (y + dy > HEIGHT - r) {
         if (x > paddlex && x < paddlex + paddlew) {
-            // Dynamic bounce angle based on where it hit the paddle
             dx = 8 * ((x - (paddlex + paddlew / 2)) / paddlew);
             dy = -dy;
-            start = true; // Resume timer
         } else {
-            clearInterval(intervalId); // Game over
+            start = false;
+            clearInterval(intervalId);
             clearInterval(timerId);
+            // Optional: You can add an alert("GAME OVER") here
         }
     }
 
@@ -170,4 +197,15 @@ function draw() {
     y += dy;
 }
 
-window.onload = init;
+// Controls and Timer
+function onKeyDown(evt) { if (evt.keyCode == 39) rightDown = true; else if (evt.keyCode == 37) leftDown = true; }
+function onKeyUp(evt) { if (evt.keyCode == 39) rightDown = false; else if (evt.keyCode == 37) leftDown = false; }
+
+function updateTimer() {
+    if (start) {
+        sekunde++;
+        var s = (sekunde % 60).toString().padStart(2, '0');
+        var m = Math.floor(sekunde / 60).toString().padStart(2, '0');
+        document.getElementById("cas").innerHTML = m + ":" + s;
+    }
+}
