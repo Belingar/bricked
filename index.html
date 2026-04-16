@@ -1,20 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <link rel="stylesheet" href="css/style.css">
     <meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap"
+        rel="stylesheet">
     <title>TANKS BRICKS</title>
 </head>
 
 <body>
     <div class="main-container">
         <h1 class="game-title">BATTLE FIELD BRICKS</h1>
+        <div id="game-controls" style="display:none;">
+            <button onclick="restartGame()">RESTART BATTLE</button>
+            <button onclick="backToMenu()">MAIN MENU</button>
+        </div>
         <div id="difficulty-menu">
-        <button onclick="startGame('easy')">EASY</button>
-        <button onclick="startGame('medium')">MEDIUM</button>
-        <button onclick="startGame('hard')">HARD</button>
-    </div>
+            <button onclick="startGame('easy')">EASY</button>
+            <button onclick="startGame('medium')">MEDIUM</button>
+            <button onclick="startGame('hard')">HARD</button>
+        </div>
+        
         <div class="game-content" id="game-interface" style="display:none;">
             <div class="side-panel scoreboard">
                 <h2>BATTLE STATUS</h2>
@@ -64,4 +71,5 @@
     <script src="js/game.js"></script>
     <script src="js/jquery-4.0.0.js"></script>
 </body>
+
 </html>

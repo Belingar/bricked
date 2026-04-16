@@ -1,7 +1,7 @@
 // --- Global variables ---
 var canvas;
 var ctx;
-
+var currentMode = "easy";
 // Ball variables
 var x;
 var y;
@@ -47,11 +47,14 @@ var start = true;
 var timerId;
 
 function startGame(mode) {
-    // Hide menu and show game
+
+    currentMode = mode;
+
     document.getElementById('difficulty-menu').style.display = 'none';
     document.getElementById('game-interface').style.display = 'flex';
+    document.getElementById('game-controls').style.display = 'flex'; 
     document.getElementById('current-difficulty').innerHTML = mode.toUpperCase();
-    // Apply settings
+    
     var settings = difficultySettings[mode];
     dx = settings.dx;
     dy = settings.dy;
@@ -59,7 +62,7 @@ function startGame(mode) {
     NROWS = settings.rows;
     NCOLS = settings.cols;
     currentBallColor = settings.ballColor;
-    // Clear any existing intervals if the user restarts
+
     clearInterval(intervalId);
     clearInterval(timerId);
 
@@ -101,6 +104,23 @@ function initbricks() {
             bricks[i][j] = 2; // Keep the 2-hit system
         }
     }
+}
+
+function restartGame() {
+    clearInterval(intervalId);
+    clearInterval(timerId);
+    startGame(currentMode); // Restart using the saved mode
+}
+
+function backToMenu() {
+    start = false;
+    clearInterval(intervalId);
+    clearInterval(timerId);
+    
+    // Hide game + controls, show the main menu
+    document.getElementById('game-interface').style.display = 'none';
+    document.getElementById('game-controls').style.display = 'none';
+    document.getElementById('difficulty-menu').style.display = 'flex';
 }
 
 function updateTanksRemaining() {
