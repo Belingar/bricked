@@ -21,7 +21,7 @@
             <button onclick="startGame('medium')">MEDIUM</button>
             <button onclick="startGame('hard')">HARD</button>
         </div>
-        
+
         <div class="game-content" id="game-interface" style="display:none;">
             <div class="side-panel scoreboard">
                 <h2>BATTLE STATUS</h2>
@@ -37,6 +37,9 @@
                 <h3>DIFFICULTY</h3>
                 <p>MODE: <span id="current-difficulty">-</span></p>
                 <hr>
+                <h3>RECORDS (<span id="record-mode">EASY</span>)</h3>
+                <p>HIGH SCORE: <span id="hi-score">0</span></p>
+                <p>BEST TIME: <span id="best-time">--:--</span></p>
             </div>
 
             <div class="canvas-area">
@@ -51,6 +54,7 @@
                 <ul>
                     <li><strong>LEFT:</strong> Arrow Left</li>
                     <li><strong>RIGHT:</strong> Arrow Right</li>
+                    <li><strong>FIRE:</strong> Spacebar</li>
                 </ul>
                 <hr>
                 <h3>ENEMY ARMOR</h3>

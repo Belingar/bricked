@@ -2,44 +2,45 @@
 var canvas;
 var ctx;
 var currentMode = "easy";
-// Ball variables
-var x;
-var y;
-var r = 10;
+
 var WIDTH = 800;
 var HEIGHT = 600;
 
+
+var records = {
+    easy: { score: 0, time: Infinity },
+    medium: { score: 0, time: Infinity },
+    hard: { score: 0, time: Infinity }
+};
 var difficultySettings = {
-    easy: { dx: 2, dy: 4, paddlew: 100, rows: 3, cols: 5, ballColor: "#ffff00" },   // Yellow
-    medium: { dx: 4, dy: 6, paddlew: 75, rows: 5, cols: 5, ballColor: "#ffff00" }, // Yellow
-    hard: { dx: 4, dy: 6, paddlew: 50, rows: 6, cols: 8, ballColor: "#808080" }    // Gray
+    easy: { bulletSpeed: 8, fallingSpeed: 3, paddlew: 100, rows: 3, cols: 5, ballColor: "#ffff00" },
+    medium: { bulletSpeed: 10, fallingSpeed: 5, paddlew: 75, rows: 5, cols: 5, ballColor: "#ffff00" },
+    hard: { bulletSpeed: 12, fallingSpeed: 7, paddlew: 50, rows: 6, cols: 8, ballColor: "#808080" }
 };
 var currentBallColor;
+
 // Image Loading
-var tankImgA = new Image();
-tankImgA.src = 'img/green.png';
-var tankImgB = new Image();
-tankImgB.src = 'img/reed.png';
 var background = new Image();
 background.src = "img/back.jpg";
-var paddleImg = new Image();
-paddleImg.src = 'img/paddle.png';
 
-// Paddle and input
-var paddlex; 
+// Cannon and input
+var paddlex;
 var paddleh = 10;
 var rightDown = false;
 var leftDown = false;
 var intervalId;
-var dx, dy, paddlew, NROWS, NCOLS;
+var fallingSpeed, paddlew, NROWS, NCOLS, bulletSpeed;
 
-// Bricks
+// Game Arrays (Bullets and Wreckage)
+var bullets = [];
+var fallingTanks = [];
+var lastShotTime = 0; 
+
+// Bricks (Enemy Tanks)
 var bricks;
 var BRICKWIDTH;
 var BRICKHEIGHT = 32;
-var PADDING = 1;
-
-var paddlecolor = "#000000";
+var PADDING = 15; 
 
 var tocke = 0;
 var sekunde = 0;
@@ -47,17 +48,16 @@ var start = true;
 var timerId;
 
 function startGame(mode) {
-
     currentMode = mode;
-
+    loadRecords();
     document.getElementById('difficulty-menu').style.display = 'none';
     document.getElementById('game-interface').style.display = 'flex';
-    document.getElementById('game-controls').style.display = 'flex'; 
+    document.getElementById('game-controls').style.display = 'flex';
     document.getElementById('current-difficulty').innerHTML = mode.toUpperCase();
-    
+
     var settings = difficultySettings[mode];
-    dx = settings.dx;
-    dy = settings.dy;
+    bulletSpeed = settings.bulletSpeed;
+    fallingSpeed = settings.fallingSpeed;
     paddlew = settings.paddlew;
     NROWS = settings.rows;
     NCOLS = settings.cols;
@@ -65,7 +65,6 @@ function startGame(mode) {
 
     clearInterval(intervalId);
     clearInterval(timerId);
-
     init();
 }
 
@@ -73,16 +72,14 @@ function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
 
-    // Reset ball and paddle to the center
-    x = WIDTH / 2;
-    y = HEIGHT / 2;
     paddlex = (WIDTH / 2) - (paddlew / 2);
+    bullets = [];
+    fallingTanks = [];
 
     start = true;
     initbricks();
     updateTanksRemaining();
 
-    // Reset scores and timer
     tocke = 0;
     sekunde = 0;
     document.getElementById("tocke").innerHTML = tocke;
@@ -91,17 +88,19 @@ function init() {
     intervalId = setInterval(draw, 10);
     timerId = setInterval(updateTimer, 1000);
 
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('keyup', onKeyUp);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
 }
 
 function initbricks() {
-    BRICKWIDTH = (WIDTH / NCOLS) - 1;
+    BRICKWIDTH = (WIDTH - (PADDING * (NCOLS + 1))) / NCOLS; 
     bricks = new Array(NROWS);
     for (var i = 0; i < NROWS; i++) {
         bricks[i] = new Array(NCOLS);
         for (var j = 0; j < NCOLS; j++) {
-            bricks[i][j] = 2; // Keep the 2-hit system
+            bricks[i][j] = 2; 
         }
     }
 }
@@ -109,117 +108,225 @@ function initbricks() {
 function restartGame() {
     clearInterval(intervalId);
     clearInterval(timerId);
-    startGame(currentMode); // Restart using the saved mode
+    startGame(currentMode);
 }
 
 function backToMenu() {
     start = false;
     clearInterval(intervalId);
     clearInterval(timerId);
-    
-    // Hide game + controls, show the main menu
     document.getElementById('game-interface').style.display = 'none';
     document.getElementById('game-controls').style.display = 'none';
     document.getElementById('difficulty-menu').style.display = 'flex';
+}
+
+function drawEnemyTank(ctx, x, y, width, height, health) {
+    const isHealthy = health === 2;
+    const bodyColor = isHealthy ? "#2ECC40" : "#FF4136";  // Bright green / Red when damaged
+    const trackColor = "#111111";
+    const turretColor = "#111111";
+    
+    ctx.save();
+    ctx.translate(x, y);
+    
+    // Disable anti-aliasing for crisp pixel look
+    ctx.imageSmoothingEnabled = false;
+    
+    const pixel = Math.max(2, Math.floor(width / 16)); // Base pixel size
+    
+    // --- TRACKS (Left & Right) ---
+    ctx.fillStyle = trackColor;
+    ctx.fillRect(0, pixel * 2, pixel * 3, height - pixel * 4);           // Left track
+    ctx.fillRect(width - pixel * 3, pixel * 2, pixel * 3, height - pixel * 4); // Right track
+    
+    // Track details (little squares)
+    ctx.fillStyle = "#333333";
+    for (let i = pixel * 3; i < height - pixel * 4; i += pixel * 2) {
+        ctx.fillRect(pixel, i, pixel, pixel);
+        ctx.fillRect(width - pixel * 2, i, pixel, pixel);
+    }
+    
+    // --- HULL (Main green body) ---
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(pixel * 3, pixel * 3, width - pixel * 6, height - pixel * 6);
+    
+    // Hull highlight (lighter green strip on top)
+    ctx.fillStyle = isHealthy ? "#3DEE55" : "#FF6666";
+    ctx.fillRect(pixel * 3, pixel * 3, width - pixel * 6, pixel * 2);
+    
+    // Hull shadow (darker strip on bottom)
+    ctx.fillStyle = isHealthy ? "#1AA330" : "#CC0000";
+    ctx.fillRect(pixel * 3, height - pixel * 5, width - pixel * 6, pixel * 2);
+    
+    // --- TURRET ---
+    ctx.fillStyle = turretColor;
+    const turretSize = pixel * 4;
+    const turretX = (width - turretSize) / 2;
+    const turretY = (height - turretSize) / 2;
+    ctx.fillRect(turretX, turretY, turretSize, turretSize);
+    
+    // --- BARREL ---
+    ctx.fillStyle = turretColor;
+    const barrelW = pixel * 2;
+    const barrelH = pixel * 5;
+    ctx.fillRect((width - barrelW) / 2, height - pixel * 2, barrelW, barrelH);
+    
+    // --- DAMAGE EFFECTS ---
+    if (health === 1) {
+        // Simple fire pixels
+        ctx.fillStyle = "#FF6600";
+        ctx.fillRect(width - pixel * 5, pixel, pixel * 2, pixel * 2);
+        ctx.fillRect(width - pixel * 4, pixel * 2, pixel * 2, pixel * 2);
+        
+        ctx.fillStyle = "#FFCC00";
+        ctx.fillRect(width - pixel * 4, pixel, pixel, pixel);
+        
+        // Smoke pixels
+        ctx.fillStyle = "#888888";
+        ctx.fillRect(width - pixel * 3, 0, pixel * 2, pixel);
+        ctx.fillRect(width - pixel * 2, -pixel, pixel * 2, pixel);
+    }
+    
+    ctx.restore();
 }
 
 function updateTanksRemaining() {
     var count = 0;
     for (var i = 0; i < NROWS; i++) {
         for (var j = 0; j < NCOLS; j++) {
-            if (bricks[i][j] > 0) {
-                count++;
-            }
+            if (bricks[i][j] > 0) count++;
         }
     }
-    // Safety check in case the HTML element hasn't loaded
-    var tanksLeftElement = document.getElementById("tanks-left");
-    if (tanksLeftElement) {
-        tanksLeftElement.innerHTML = count;
-    }
+    document.getElementById("tanks-left").innerHTML = count;
     return count;
 }
 
 function draw() {
+    if (!start) return;
+
     ctx.drawImage(background, 0, 0, WIDTH, HEIGHT);
 
-    // 1. Paddle movement
-    if (rightDown) {
-        if ((paddlex + paddlew) < WIDTH) paddlex += 5;
-        else paddlex = WIDTH - paddlew;
-    } else if (leftDown) {
-        if (paddlex > 0) paddlex -= 5;
-        else paddlex = 0;
-    }
+    if (rightDown && (paddlex + paddlew) < WIDTH) paddlex += 5;
+    else if (leftDown && paddlex > 0) paddlex -= 5;
 
-    // 2. Draw ball
-    ctx.beginPath(); // Start a new shape
-    ctx.fillStyle = currentBallColor; // Set the color based on difficulty
-    ctx.arc(x, y, r, 0, Math.PI * 2, true); // Define the circle shape
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = currentBallColor;
+    var cx = paddlex + paddlew / 2;
+    var baseY = HEIGHT - paddleh;
+    ctx.fillStyle = '#2a2010'; 
+    ctx.fillRect(paddlex, baseY, paddlew, paddleh);
+    ctx.fillStyle = '#3a5525'; 
+    ctx.beginPath();
+    ctx.arc(cx, baseY - 2, 9, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#1a2010'; 
+    ctx.fillRect(cx - 5, baseY - 30, 10, 30);
 
-    // 3. Draw paddle
-    ctx.drawImage(paddleImg, paddlex, HEIGHT - paddleh, paddlew, paddleh);
-
-    // 4. Draw bricks (Two-Image Logic)
+    var tanksAlive = 0;
     for (var i = 0; i < NROWS; i++) {
         for (var j = 0; j < NCOLS; j++) {
             if (bricks[i][j] > 0) {
+                tanksAlive++;
                 var brickX = (j * (BRICKWIDTH + PADDING)) + PADDING;
                 var brickY = (i * (BRICKHEIGHT + PADDING)) + PADDING;
-
-                if (bricks[i][j] === 2) {
-                    ctx.drawImage(tankImgA, brickX, brickY, BRICKWIDTH, BRICKHEIGHT);
-                } else if (bricks[i][j] === 1) {
-                    ctx.drawImage(tankImgB, brickX, brickY, BRICKWIDTH, BRICKHEIGHT);
-                }
+                drawEnemyTank(ctx, brickX, brickY, BRICKWIDTH, BRICKHEIGHT, bricks[i][j]);
             }
         }
     }
 
-    // 5. Updated Collision Logic (Added safety bounds to prevent crashes)
-    var rowheight = BRICKHEIGHT + PADDING;
-    var colwidth = BRICKWIDTH + PADDING;
-    var row = Math.floor(y / rowheight);
-    var col = Math.floor(x / colwidth);
+    for (var i = bullets.length - 1; i >= 0; i--) {
+        var b = bullets[i];
+        b.y -= bulletSpeed;
+        ctx.beginPath();
+        ctx.fillStyle = currentBallColor;
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2, true);
+        ctx.fill();
 
-    // Check if we hit a brick that has health (> 0) and we are within the array boundaries
-    if (y < NROWS * rowheight && row >= 0 && col >= 0 && row < NROWS && col < NCOLS && bricks[row][col] > 0) {
-        dy = -dy;
+        if (b.y < 0) {
+            bullets.splice(i, 1);
+            continue;
+        }
 
-        // Point on every hit!
-        tocke += 1;
-        document.getElementById("tocke").innerHTML = tocke;
+        var rowheight = BRICKHEIGHT + PADDING;
+        var colwidth = BRICKWIDTH + PADDING;
+        var row = Math.floor(b.y / rowheight);
+        var col = Math.floor(b.x / colwidth);
 
-        bricks[row][col] -= 1; // Decrease health
-        updateTanksRemaining(); // Update the counter
-    }
+        if (row >= 0 && col >= 0 && row < NROWS && col < NCOLS && bricks[row][col] > 0) {
+            var bx = col * colwidth + PADDING;
+            var by = row * rowheight + PADDING;
+            
+            if (b.x > bx && b.x < bx + BRICKWIDTH && b.y > by && b.y < by + BRICKHEIGHT) {
+                bricks[row][col] -= 1;
+                tocke += 1;
+                document.getElementById("tocke").innerHTML = tocke;
 
-    // 6. Wall & Paddle Collision
-    if (x + dx > WIDTH - r || x + dx < r) dx = -dx;
-    if (y + dy < r) dy = -dy;
-    else if (y + dy > HEIGHT - r) {
-        if (x > paddlex && x < paddlex + paddlew) {
-            dx = 8 * ((x - (paddlex + paddlew / 2)) / paddlew);
-            dy = -dy;
-        } else {
-            start = false;
-            clearInterval(intervalId);
-            clearInterval(timerId);
-            // Optional: You can add an alert("GAME OVER") here
+                if (bricks[row][col] === 0) {
+                    fallingTanks.push({
+                        x: bx,
+                        y: by,
+                        width: BRICKWIDTH,
+                        height: BRICKHEIGHT
+                    });
+                    updateTanksRemaining();
+                }
+                bullets.splice(i, 1);
+            }
         }
     }
 
-    x += dx;
-    y += dy;
+    for (var i = fallingTanks.length - 1; i >= 0; i--) {
+        var ft = fallingTanks[i];
+        ft.y += fallingSpeed;
+        drawEnemyTank(ctx, ft.x, ft.y, ft.width, ft.height, 1);
+
+        var cannonTopY = HEIGHT - 40;
+        if (ft.y + ft.height > cannonTopY && ft.y < HEIGHT &&
+            ft.x + ft.width > paddlex && ft.x < paddlex + paddlew) {
+            start = false;
+            clearInterval(intervalId);
+            clearInterval(timerId);
+            ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            ctx.fillStyle = "white";
+            ctx.font = "bold 45px Rajdhani";
+            ctx.textAlign = "center";
+            ctx.fillText("CRUSHED BY WRECKAGE!", WIDTH / 2, HEIGHT / 2);
+            return;
+        }
+        if (ft.y > HEIGHT) fallingTanks.splice(i, 1);
+    }
+
+    if (tanksAlive === 0 && fallingTanks.length === 0) {
+        start = false;
+        clearInterval(intervalId);
+        clearInterval(timerId);
+        saveRecords();
+        ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 50px Rajdhani";
+        ctx.textAlign = "center";
+        ctx.fillText("BATTLE WON!", WIDTH / 2, HEIGHT / 2);
+    }
 }
 
-// Controls and Timer
-function onKeyDown(evt) { if (evt.keyCode == 39) rightDown = true; else if (evt.keyCode == 37) leftDown = true; }
-function onKeyUp(evt) { if (evt.keyCode == 39) rightDown = false; else if (evt.keyCode == 37) leftDown = false; }
+function onKeyDown(evt) {
+    if (evt.keyCode == 39) rightDown = true;
+    else if (evt.keyCode == 37) leftDown = true;
+    else if (evt.keyCode == 32) shoot();
+}
+
+function onKeyUp(evt) {
+    if (evt.keyCode == 39) rightDown = false;
+    else if (evt.keyCode == 37) leftDown = false;
+}
+
+function shoot() {
+    if (!start) return;
+    var now = Date.now();
+    if (now - lastShotTime < 250) return;
+    lastShotTime = now;
+    bullets.push({ x: paddlex + paddlew / 2, y: HEIGHT - 44, r: 5 });
+}
 
 function updateTimer() {
     if (start) {
@@ -227,5 +334,49 @@ function updateTimer() {
         var s = (sekunde % 60).toString().padStart(2, '0');
         var m = Math.floor(sekunde / 60).toString().padStart(2, '0');
         document.getElementById("cas").innerHTML = m + ":" + s;
+    }
+}
+
+function loadRecords() {
+    var saved = localStorage.getItem('battleFieldRecords');
+    if (saved) {
+        records = JSON.parse(saved);
+    }
+    updateRecordUI();
+}
+
+function updateRecordUI() {
+    document.getElementById('record-mode').innerHTML = currentMode.toUpperCase();
+    document.getElementById('hi-score').innerHTML = records[currentMode].score;
+    
+    var bestTime = records[currentMode].time;
+    if (bestTime === Infinity) {
+        document.getElementById('best-time').innerHTML = "--:--";
+    } else {
+        var s = (bestTime % 60).toString().padStart(2, '0');
+        var m = Math.floor(bestTime / 60).toString().padStart(2, '0');
+        document.getElementById('best-time').innerHTML = m + ":" + s;
+    }
+}
+
+function saveRecords() {
+    var isNewRecord = false;
+    
+    // Check if current score beats the high score
+    if (tocke > records[currentMode].score) {
+        records[currentMode].score = tocke;
+        isNewRecord = true;
+    }
+    
+    // Check if current time is faster than the best time
+    if (sekunde < records[currentMode].time) {
+        records[currentMode].time = sekunde;
+        isNewRecord = true;
+    }
+    
+    // If a record was broken, save to local storage and update the UI
+    if (isNewRecord) {
+        localStorage.setItem('battleFieldRecords', JSON.stringify(records));
+        updateRecordUI();
     }
 }

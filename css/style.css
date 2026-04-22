@@ -1,15 +1,14 @@
-/* Update the main container to stack vertically */
+
 .main-container {
     display: flex;
-    flex-direction: column; /* Stacks title on top of game content */
-    align-items: center;    /* Centers the title and the game block */
+    flex-direction: column; 
+    align-items: center;    
     gap: 20px;
 }
 
-/* New sub-container to keep the panels and canvas side-by-side */
 .game-content {
     display: flex;
-    flex-direction: row;    /* Keeps Scoreboard, Canvas, and Manual in a row */
+    flex-direction: row;    
     align-items: flex-start;
     gap: 20px;
 }
@@ -93,13 +92,12 @@ body {
     height: 100vh;
 }
 
-/* Your existing Side Panels styling */
 .side-panel {
     background-color: #2e2c22;
     border: 2px solid #3a3820;
     padding: 20px;
     width: 220px; /* Slightly wider to fit text from your screenshot */
-    height: 560px;
+    height: 620px;
     border-radius: 5px;
     box-shadow: 0 0 15px rgba(0,0,0,0.5);
 }
