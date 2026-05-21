@@ -1,0 +1,143 @@
+
+.main-container {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;    
+    gap: 20px;
+}
+
+.game-content {
+    display: flex;
+    flex-direction: row;    
+    align-items: flex-start;
+    gap: 20px;
+}
+#difficulty-menu {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Game Controls (Restart / Menu) */
+#game-controls {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+#game-controls button {
+    background-color: #2e2c22;
+    color: #c8a832;
+    border: 2px solid #3a3820;
+    padding: 10px 20px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+#game-controls button:hover {
+    background-color: #3a3820;
+    color: #ffffff;
+    box-shadow: 0 0 10px #c8a832;
+}
+
+#current-difficulty {
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    color: #c8a832; /* Gold color to match your theme */
+    text-transform: uppercase;
+}
+
+#difficulty-menu button {
+    background-color: #2e2c22;
+    color: #c8a832;
+    border: 2px solid #3a3820;
+    padding: 15px 30px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+#difficulty-menu button:hover {
+    background-color: #3a3820;
+    color: #ffffff;
+    box-shadow: 0 0 15px #c8a832;
+}
+
+/* Title Styling */
+.game-title {
+    font-family: 'Rajdhani', sans-serif;
+    color: #c8a832;         /* Matches the gold status text */
+    font-size: 3.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 8px;    /* Military style spacing */
+    margin: 0;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.7);
+}
+
+/* Your existing Body styling */
+body {
+    background-color: #1a1a14;
+    color: #d4c89a;
+    font-family: 'Rajdhani', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.side-panel {
+    background-color: #2e2c22;
+    border: 2px solid #3a3820;
+    padding: 20px;
+    width: 220px; /* Slightly wider to fit text from your screenshot */
+    height: 620px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+#tanks-left {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    color: #00ff00; /* Bright green so it stands out */
+    font-weight: bold;
+}
+
+.side-panel h2 {
+    color: #c8a832;
+    font-size: 25px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #3a3820;
+}
+
+/* Canvas styling */
+canvas {
+    border: 2px solid #3a3820;
+    background-image: url('img/back.jpg');
+    display: block;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* Sub-headers for Mission and Armor sections */
+h3 {
+    color: #137000;
+    font-size: 18px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #3a3820;
+    margin-top: 15px;
+}
+
+/* Rest of your existing list and span styling */
+.scoreboard span {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    color: #ffffff;
+}
+.instructions ul { list-style: none; padding: 0; }
+.instructions li { margin-bottom: 10px; }
